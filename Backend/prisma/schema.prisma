@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum RentalStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+  fullName     String
+  email        String       @unique
+  password     String
+  role         Role         @default(USER)
+  rentals      Rental[]
+  loyaltyCard  LoyaltyCard?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Book {
+  id              Int       @id @default(autoincrement())
+  title           String
+  author          String
+  genre           String?
+  description     String?   @db.Text
+  totalCopies     Int
+  availableCopies Int
+  rentals         Rental[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Rental {
+  id          Int           @id @default(autoincrement())
+  userId      Int
+  bookId      Int
+  rentDate    DateTime      @default(now())
+  dueDate     DateTime
+  returnDate  DateTime?
+  status      RentalStatus  @default(ACTIVE)
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book        Book          @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([bookId])
+  @@index([status])
+}
+
+model LoyaltyCard {
+  id            Int                  @id @default(autoincrement())
+  userId        Int                  @unique
+  points        Int                  @default(0)
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  LoyaltyTransaction[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+}
+
+model LoyaltyTransaction {
+  id             Int          @id @default(autoincrement())
+  loyaltyCardId  Int
+  points         Int
+  reason         String
+  createdAt      DateTime     @default(now())
+
+  loyaltyCard    LoyaltyCard  @relation(fields: [loyaltyCardId], references: [id], onDelete: Cascade)
+
+  @@index([loyaltyCardId])
+}
